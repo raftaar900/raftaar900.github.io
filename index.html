@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatNest — Baat Karo, Judo Raho</title>
+<style>
+  :root{
+    --jungle:#123832; --jungle-dark:#0b2622;
+    --mango:#F2A65A; --macaw:#E5484D; --sky:#2D9CDB;
+    --cream:#FBF3E3; --feather-green:#3FA66B; --text-dark:#123832; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Segoe UI', Tahoma, Verdana, sans-serif;
+    background: linear-gradient(160deg, var(--jungle) 0%, var(--jungle-dark) 55%, #0a1f1c 100%);
+    color: var(--cream); min-height:100vh; overflow-x:hidden;
+  }
+  h1,h2,h3{ font-family:'Georgia', 'Segoe UI', serif; letter-spacing:0.3px; }
+
+  .menubar{
+    display:flex; justify-content:center; gap:2px;
+    background: linear-gradient(90deg, var(--mango), var(--macaw));
+    box-shadow:0 3px 10px rgba(0,0,0,0.35); position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .menubar a{
+    color:#fff; text-decoration:none; padding:14px 22px; font-weight:600; font-size:15px;
+    border-right:1px solid rgba(255,255,255,0.25); transition:background 0.2s ease;
+  }
+  .menubar a:last-child{border-right:none;}
+  .menubar a:hover{ background: rgba(255,255,255,0.18); }
+
+  .brand{ text-align:center; padding:26px 16px 6px; }
+  .brand h1{ font-size:2.2rem; margin:0; color: var(--mango); text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+  .brand p{ margin:6px 0 0; color:#cfe9dd; font-size:0.95rem; }
+
+  .home-wrap{ display:flex; gap:22px; max-width:1100px; margin:30px auto; padding:0 18px; flex-wrap:wrap; }
+  .panel{ background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:var(--radius); padding:22px; backdrop-filter: blur(4px); }
+
+  .notice-panel{ flex:1 1 320px; }
+  .notice-panel h2{ color: var(--mango); margin-top:0; border-bottom:2px solid var(--mango); padding-bottom:8px; font-size:1.25rem; }
+  .notice-item{ background: rgba(0,0,0,0.22); border-left:4px solid var(--feather-green); padding:10px 12px; border-radius:8px; margin-bottom:10px; font-size:0.92rem; line-height:1.4; }
+  .notice-item .notice-date{ display:block; font-size:0.75rem; color:#a9d6c4; margin-top:4px; }
+  #adminPostBox{ margin-top:14px; display:none; }
+  #adminPostBox textarea{ width:100%; border-radius:8px; border:none; padding:10px; font-family:inherit; resize:vertical; min-height:60px; }
+  #adminPostBox button{ margin-top:8px; }
+
+  .auth-panel{ flex:1 1 280px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:16px; }
+  .auth-panel h2{ color:var(--sky); margin:0 0 4px; }
+  .btn{ display:block; width:220px; padding:14px 0; border:none; border-radius:30px; font-size:1rem; font-weight:700; cursor:pointer; transition:transform 0.15s ease, box-shadow 0.15s ease; }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,0.35); }
+  .btn:disabled{ opacity:0.6; cursor:not-allowed; transform:none; }
+  .btn-login{ background: var(--sky); color:#fff; }
+  .btn-register{ background: var(--macaw); color:#fff; }
+
+  .modal-overlay{ display:none; position:fixed; inset:0; background: rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:200; }
+  .modal-overlay.active{ display:flex; }
+  .modal-box{ background: var(--cream); color: var(--text-dark); padding:26px 28px; border-radius:16px; width:90%; max-width:360px; position:relative; }
+  .modal-box h3{ margin-top:0; color:var(--jungle); }
+  .modal-box input{ width:100%; padding:11px; margin:8px 0; border:1px solid #ccc; border-radius:8px; font-size:0.95rem; }
+  .modal-box .btn{ width:100%; margin-top:10px; }
+  .modal-close{ position:absolute; top:10px; right:14px; cursor:pointer; font-size:1.2rem; color:#666; background:none; border:none; }
+  .msg{ font-size:0.85rem; margin-top:6px; min-height:18px; }
+  .msg.error{ color:var(--macaw); }
+  .msg.success{ color:var(--feather-green); }
+
+  .chat-wrap{ display:none; max-width:1100px; margin:26px auto; padding:0 18px; }
+  .chat-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .chat-header .who{ font-size:1.05rem; }
+  .chat-header .who b{ color:var(--mango); }
+  .logout-btn{ background:var(--macaw); color:#fff; border:none; padding:8px 16px; border-radius:20px; cursor:pointer; font-weight:600; }
+  .chat-body{ display:flex; gap:16px; flex-wrap:wrap; }
+  .user-list{ flex:1 1 200px; background: rgba(255,255,255,0.06); border-radius:var(--radius); padding:14px; max-height:420px; overflow-y:auto; }
+  .user-list h4{ margin-top:0; color:var(--sky); }
+  .user-list div{ padding:9px 10px; border-radius:8px; cursor:pointer; margin-bottom:4px; font-size:0.92rem; }
+  .user-list div:hover, .user-list div.active-user{ background: rgba(255,255,255,0.15); }
+  .conversation{ flex:2 1 340px; background: rgba(255,255,255,0.06); border-radius:var(--radius); display:flex; flex-direction:column; height:420px; }
+  .conv-messages{ flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .bubble{ max-width:75%; padding:9px 13px; border-radius:14px; font-size:0.9rem; line-height:1.35; }
+  .bubble.me{ align-self:flex-end; background:var(--sky); color:#fff; border-bottom-right-radius:4px; }
+  .bubble.them{ align-self:flex-start; background:rgba(255,255,255,0.15); border-bottom-left-radius:4px; }
+  .conv-input{ display:flex; border-top:1px solid rgba(255,255,255,0.15); }
+  .conv-input input{ flex:1; border:none; padding:12px; font-size:0.92rem; border-radius:0 0 0 var(--radius); background: rgba(0,0,0,0.15); color:var(--cream); }
+  .conv-input input::placeholder{ color:#c8e2d6; }
+  .conv-input button{ background: var(--feather-green); color:#fff; border:none; padding:0 18px; cursor:pointer; font-weight:700; border-radius:0 0 var(--radius) 0; }
+  .empty-hint{ padding:20px; color:#bcd; font-size:0.9rem; }
+
+  footer{ text-align:center; padding:20px; font-size:0.8rem; color:#9dbfb0; }
+
+  #parrot{ position:fixed; top:14%; left:-160px; width:110px; z-index:999; pointer-events:none; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
+  #parrot.fly{ animation: parrotFly 4.2s ease-in-out forwards; }
+  @keyframes parrotFly{
+    0%   { left:-160px; top:14%; transform: scaleX(1) rotate(0deg); }
+    45%  { top:8%; }
+    50%  { left:50%; top:20%; transform: scaleX(1) rotate(-4deg); }
+    55%  { top:26%; }
+    100% { left:110%; top:16%; transform: scaleX(1) rotate(3deg); }
+  }
+  .wing{ transform-origin: 60px 55px; animation: flap 0.35s ease-in-out infinite alternate; }
+  @keyframes flap{ from{ transform:rotate(0deg);} to{ transform:rotate(-28deg);} }
+  @media (prefers-reduced-motion: reduce){ #parrot.fly, .wing{ animation:none !important; } }
+
+  #connBanner{
+    display:none; text-align:center; padding:10px; background:var(--macaw); color:#fff;
+    font-size:0.85rem; font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<div id="connBanner">⚠ Firebase config set nahi hai — neeche instructions dekhkar apni keys daalein.</div>
+
+<svg id="parrot" viewBox="0 0 140 110" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="65" cy="60" rx="34" ry="24" fill="#3FA66B"/>
+  <path class="wing" d="M60 55 C40 40, 10 45, 15 65 C 30 70, 50 68, 60 58 Z" fill="#2E8B57"/>
+  <circle cx="95" cy="45" r="16" fill="#3FA66B"/>
+  <path d="M108 42 C120 40, 122 48, 110 50 Z" fill="#333" />
+  <circle cx="100" cy="41" r="2.4" fill="#111"/>
+  <path d="M30 58 C10 55, -5 60, 5 68 C 15 74, 28 70, 30 58 Z" fill="#F2A65A"/>
+  <path d="M55 78 C50 95, 60 100, 65 82 Z" fill="#E5484D"/>
+  <path d="M62 80 C60 96, 70 100, 72 84 Z" fill="#F2A65A"/>
+</svg>
+
+<nav class="menubar">
+  <a href="#">Name One</a>
+  <a href="#">Name Two</a>
+  <a href="#">Name Three</a>
+  <a href="#">Name Four</a>
+  <a href="#">Name Five</a>
+</nav>
+
+<div class="brand">
+  <h1>🦜 ChatNest</h1>
+  <p>Ek jagah, sab se baat — surakshit aur rangeen andaaz mein</p>
+</div>
+
+<div class="home-wrap" id="homeSection">
+  <div class="panel notice-panel">
+    <h2>📌 Admin Notice Board</h2>
+    <div id="noticeList"><p style="opacity:0.7;font-size:0.9rem;">Loading...</p></div>
+    <div id="adminPostBox">
+      <textarea id="noticeInput" placeholder="Naya notice likhein..."></textarea>
+      <button class="btn btn-login" onclick="postNotice()">Notice Post Karein</button>
+    </div>
+  </div>
+
+  <div class="panel auth-panel">
+    <h2>Shuru Karein</h2>
+    <button class="btn btn-login" onclick="openModal('loginModal')">Login</button>
+    <button class="btn btn-register" onclick="openModal('registerModal')">Registration</button>
+  </div>
+</div>
+
+<div class="chat-wrap" id="chatSection">
+  <div class="chat-header">
+    <div class="who">Welcome, <b id="currentUserName"></b></div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+  <div class="chat-body">
+    <div class="user-list">
+      <h4>Users</h4>
+      <div id="userListBox"></div>
+    </div>
+    <div class="conversation">
+      <div class="conv-messages" id="convMessages">
+        <div class="empty-hint">Chat karne ke liye kisi user ko select karein.</div>
+      </div>
+      <div class="conv-input">
+        <input type="text" id="msgInput" placeholder="Apna message likhein..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Made with 🦜 · ChatNest</footer>
+
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
+    <h3>Login</h3>
+    <input type="text" id="loginUsername" placeholder="Username" autocomplete="username">
+    <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+    <button class="btn btn-login" id="loginBtn" onclick="handleLogin()">Login Karein</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="registerModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
+    <h3>Naya Account Banayein</h3>
+    <input type="text" id="regUsername" placeholder="Username" autocomplete="username">
+    <input type="password" id="regPassword" placeholder="Password (kam se kam 6 characters)" autocomplete="new-password">
+    <input type="password" id="regPassword2" placeholder="Password dobara likhein" autocomplete="new-password">
+    <button class="btn btn-register" id="regBtn" onclick="handleRegister()">Register Karein</button>
+    <div class="msg" id="regMsg"></div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     FIREBASE SETUP — neeche instructions follow karke ye 8 lines bharein
+     =================================================================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where,
+    orderBy, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // 👇 YAHAN APNI FIREBASE CONFIG PASTE KAREIN (Firebase Console > Project Settings)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  if(firebaseConfig.apiKey === "YOUR_API_KEY"){
+    document.getElementById('connBanner').style.display = 'block';
+  }
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Domain jo hum pseudo-email banane ke liye use karte hain,
+  // taaki user sirf "username" se login kar sake (email zaruri nahi).
+  const EMAIL_DOMAIN = "chatnest.local";
+
+  function escapeHTML(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showMsg(el, text, isError){
+    el.textContent = text;
+    el.className = 'msg ' + (isError ? 'error' : 'success');
+  }
+
+  window.openModal = (id)=> document.getElementById(id).classList.add('active');
+  window.closeModal = (id)=> document.getElementById(id).classList.remove('active');
+  window.addEventListener('click', (e)=>{
+    if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('active');
+  });
+
+  let currentUserData = null; // { uid, username, isAdmin }
+  let activeChatUser = null;  // { uid, username }
+  let unsubMessages = null;
+
+  /* ---------------- REGISTER ---------------- */
+  window.handleRegister = async function(){
+    const uname = document.getElementById('regUsername').value.trim();
+    const pass  = document.getElementById('regPassword').value;
+    const pass2 = document.getElementById('regPassword2').value;
+    const msgEl = document.getElementById('regMsg');
+    const btn = document.getElementById('regBtn');
+
+    if(uname.length < 3){ showMsg(msgEl,'Username kam se kam 3 characters ka ho.',true); return; }
+    if(!/^[a-zA-Z0-9_]+$/.test(uname)){ showMsg(msgEl,'Sirf letters, numbers aur _ allowed hain.',true); return; }
+    if(pass.length < 6){ showMsg(msgEl,'Password kam se kam 6 characters ka ho.',true); return; }
+    if(pass !== pass2){ showMsg(msgEl,'Dono password match nahi kar rahe.',true); return; }
+
+    btn.disabled = true;
+    try{
+      const pseudoEmail = uname.toLowerCase() + "@" + EMAIL_DOMAIN;
+      const cred = await createUserWithEmailAndPassword(auth, pseudoEmail, pass);
+      await setDoc(doc(db, "users", cred.user.uid), {
+        username: uname,
+        usernameLower: uname.toLowerCase(),
+        isAdmin: false,
+        createdAt: serverTimestamp()
+      });
+      showMsg(msgEl,'Account ban gaya! Login ho rahe hain...',false);
+      setTimeout(()=> closeModal('registerModal'), 700);
+    } catch(err){
+      showMsg(msgEl, friendlyError(err), true);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  /* ---------------- LOGIN ---------------- */
+  window.handleLogin = async function(){
+    const uname = document.getElementById('loginUsername').value.trim();
+    const pass  = document.getElementById('loginPassword').value;
+    const msgEl = document.getElementById('loginMsg');
+    const btn = document.getElementById('loginBtn');
+
+    if(!uname || !pass){ showMsg(msgEl,'Username aur password bharein.',true); return; }
+    btn.disabled = true;
+    try{
+      const pseudoEmail = uname.toLowerCase() + "@" + EMAIL_DOMAIN;
+      await signInWithEmailAndPassword(auth, pseudoEmail, pass);
+      showMsg(msgEl,'Login successful!',false);
+      setTimeout(()=> closeModal('loginModal'), 400);
+    } catch(err){
+      showMsg(msgEl, friendlyError(err), true);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  function friendlyError(err){
+    const code = err.code || '';
+    if(code.includes('user-not-found') || code.includes('invalid-credential') || code.includes('wrong-password'))
+      return 'Username ya password galat hai.';
+    if(code.includes('email-already-in-use'))
+      return 'Ye username pehle se liya ja chuka hai.';
+    if(code.includes('network-request-failed'))
+      return 'Internet connection check karein.';
+    return 'Kuch galat ho gaya: ' + code;
+  }
+
+  window.logout = function(){ signOut(auth); };
+
+  /* ---------------- AUTH STATE ---------------- */
+  onAuthStateChanged(auth, async (user)=>{
+    if(user){
+      const snap = await getDoc(doc(db, "users", user.uid));
+      const data = snap.exists() ? snap.data() : { username: user.email.split('@')[0], isAdmin:false };
+      currentUserData = { uid: user.uid, username: data.username, isAdmin: !!data.isAdmin };
+      document.getElementById('homeSection').style.display = 'none';
+      document.getElementById('chatSection').style.display = 'block';
+      document.getElementById('currentUserName').textContent = currentUserData.username;
+      document.getElementById('adminPostBox').style.display = currentUserData.isAdmin ? 'block' : 'none';
+      listenUsers();
+    } else {
+      currentUserData = null;
+      activeChatUser = null;
+      document.getElementById('homeSection').style.display = 'flex';
+      document.getElementById('chatSection').style.display = 'none';
+      document.getElementById('adminPostBox').style.display = 'none';
+      if(unsubMessages) unsubMessages();
+    }
+  });
+
+  /* ---------------- NOTICE BOARD (public, live) ---------------- */
+  const noticesQuery = query(collection(db, "notices"), orderBy("timestamp", "desc"));
+  onSnapshot(noticesQuery, (snap)=>{
+    const list = document.getElementById('noticeList');
+    if(snap.empty){
+      list.innerHTML = '<p style="opacity:0.7;font-size:0.9rem;">Abhi koi notice nahi hai.</p>';
+      return;
+    }
+    list.innerHTML = snap.docs.map(d=>{
+      const n = d.data();
+      const dateStr = n.timestamp ? n.timestamp.toDate().toLocaleString('en-IN') : '';
+      return `<div class="notice-item">${escapeHTML(n.text)}<span class="notice-date">${escapeHTML(dateStr)}</span></div>`;
+    }).join('');
+  }, (err)=> console.error('notices error', err));
+
+  window.postNotice = async function(){
+    if(!currentUserData || !currentUserData.isAdmin) return;
+    const input = document.getElementById('noticeInput');
+    const text = input.value.trim();
+    if(!text) return;
+    await addDoc(collection(db, "notices"), {
+      text, authorUid: currentUserData.uid, timestamp: serverTimestamp()
+    });
+    input.value = '';
+  };
+
+  /* ---------------- USER LIST ---------------- */
+  function listenUsers(){
+    onSnapshot(collection(db, "users"), (snap)=>{
+      const box = document.getElementById('userListBox');
+      const others = snap.docs
+        .map(d=>({ uid:d.id, ...d.data() }))
+        .filter(u=> u.uid !== currentUserData.uid);
+      if(others.length === 0){
+        box.innerHTML = '<p style="opacity:0.7;font-size:0.85rem;">Koi aur user register nahi hua abhi.</p>';
+        return;
+      }
+      box.innerHTML = others.map(u=>`
+        <div onclick='window.selectChatUser(${JSON.stringify(u.uid)}, ${JSON.stringify(u.username)})'
+             class="${activeChatUser && activeChatUser.uid===u.uid ? 'active-user':''}">
+          ${escapeHTML(u.username)}${u.isAdmin ? ' 👑' : ''}
+        </div>`).join('');
+    });
+  }
+
+  /* ---------------- CHAT ---------------- */
+  function conversationId(uidA, uidB){
+    return [uidA, uidB].sort().join('_');
+  }
+
+  window.selectChatUser = function(uid, username){
+    activeChatUser = { uid, username };
+    listenUsers();
+    if(unsubMessages) unsubMessages();
+
+    const convId = conversationId(currentUserData.uid, uid);
+    const msgQuery = query(
+      collection(db, "messages"),
+      where("conversationId", "==", convId),
+      orderBy("timestamp", "asc")
+    );
+    unsubMessages = onSnapshot(msgQuery, (snap)=>{
+      const convBox = document.getElementById('convMessages');
+      if(snap.empty){
+        convBox.innerHTML = '<div class="empty-hint">Abhi tak koi message nahi. Sabse pehle aap likhein!</div>';
+        return;
+      }
+      convBox.innerHTML = snap.docs.map(d=>{
+        const m = d.data();
+        const mine = m.fromUid === currentUserData.uid;
+        return `<div class="bubble ${mine?'me':'them'}">${escapeHTML(m.text)}</div>`;
+      }).join('');
+      convBox.scrollTop = convBox.scrollHeight;
+    }, (err)=> console.error('messages error', err));
+  };
+
+  window.sendMessage = async function(){
+    if(!activeChatUser || !currentUserData) return;
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    await addDoc(collection(db, "messages"), {
+      conversationId: conversationId(currentUserData.uid, activeChatUser.uid),
+      fromUid: currentUserData.uid,
+      toUid: activeChatUser.uid,
+      text,
+      timestamp: serverTimestamp()
+    });
+  };
+
+  /* ---------------- FLYING PARROT ---------------- */
+  const parrot = document.getElementById('parrot');
+  function flyParrot(){
+    parrot.classList.remove('fly');
+    void parrot.offsetWidth;
+    parrot.classList.add('fly');
+  }
+  flyParrot();
+  setInterval(flyParrot, 5000);
+</script>
+</body>
+</html>
